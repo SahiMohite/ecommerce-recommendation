@@ -14,6 +14,24 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ---------------- ROOT ROUTE (IMPORTANT) ----------------
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "status": "ML Recommendation Service Running"
+    }), 200
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'models_loaded': {
+            'collaborative': collaborative_model is not None,
+            'content_based': content_model is not None
+        }
+    })
+
 # MongoDB connection
 MONGODB_URI = os.getenv('MONGODB_URI')
 try:
@@ -60,17 +78,6 @@ def load_models():
         logger.error(f"Error loading models: {e}")
 
 load_models()
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'ok',
-        'models_loaded': {
-            'collaborative': collaborative_model is not None,
-            'content_based': content_model is not None
-        }
-    })
 
 @app.route('/recommendations/user/<user_id>', methods=['GET'])
 def get_user_recommendations(user_id):
