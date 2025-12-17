@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+*node_modules/
+venv/
+*venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs
+build/
+dist/
+*.pid
+*.seed
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML Models (too large for git)
+ml-service/models/*.pkl
+
+# Docker
+.dockerignore
