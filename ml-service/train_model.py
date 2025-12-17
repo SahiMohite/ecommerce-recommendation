@@ -5,12 +5,14 @@ import pandas as pd
 from pymongo import MongoClient
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
+from dotenv import load_dotenv
 import logging
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MONGODB_URI = os.getenv('MONGODB_URI')
+MONGODB_URI = os.getenv("MONGODB_URI")
 MODEL_PATH = os.getenv('MODEL_PATH', './models')
 
 def train_and_save_models():
