@@ -1,12 +1,9 @@
-'use strict';
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const compression = require('compression');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -15,87 +12,33 @@ const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const recommendationRoutes = require('./routes/recommendations');
 const analyticsRoutes = require('./routes/analytics');
-
-const { initRedis, closeRedis } = require('./utils/redis');
+const { initRedis } = require('./utils/redis');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-/* =========================
-   Trust Proxy (Render)
-========================= */
-app.set('trust proxy', 1);
-
-/* =========================
-   Security Middleware
-========================= */
+// Security middleware
 app.use(helmet());
-app.use(compression());
 
-/* =========================
-   CORS (IMPORTANT)
-========================= */
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://ecommerce-recommendation-nu.vercel.app'
-];
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS not allowed'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  })
-);
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
-/* =========================
-   Rate Limiting
-========================= */
-app.use(
-  '/api',
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false
-  })
-);
-
-/* =========================
-   Body Parsers
-========================= */
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: false }));
-
-/* =========================
-   Logging
-========================= */
-if (process.env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-}
-
-/* =========================
-   Health Check
-========================= */
+// Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-/* =========================
-   Routes
-========================= */
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
@@ -103,57 +46,34 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-/* =========================
-   404 Handler
-========================= */
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-/* =========================
-   Error Handler
-========================= */
+// Error handling
 app.use(errorHandler);
 
-/* =========================
-   Database + Server Start
-========================= */
+// Database connection
 const PORT = process.env.PORT || 5000;
 
-async function startServer() {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      autoIndex: false
-    });
-
-    console.log('✅ MongoDB connected');
-
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(async () => {
+    console.log('✅ MongoDB connected successfully');
+    
+    // Initialize Redis
     await initRedis();
-    console.log('✅ Redis connected');
-
-    const server = app.listen(PORT, () => {
+    
+    app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
-
-    /* =========================
-       Graceful Shutdown
-    ========================= */
-    const shutdown = async () => {
-      console.log('🛑 Shutting down gracefully...');
-      server.close(async () => {
-        await mongoose.connection.close(false);
-        await closeRedis();
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
-  } catch (err) {
-    console.error('❌ Server startup failed:', err);
+  })
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err);
     process.exit(1);
-  }
-}
+  });
 
-startServer();
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  mongoose.connection.close();
+  process.exit(0);
+});

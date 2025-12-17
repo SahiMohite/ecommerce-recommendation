@@ -7,12 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/utils/seeder.js",
-    "test": "jest --watchAll=false",
-    "build": "echo 'No build step needed'"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "test": "jest --watchAll=false"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -26,8 +21,7 @@
     "redis": "^4.6.8",
     "axios": "^1.5.0",
     "helmet": "^7.0.0",
-    "express-rate-limit": "^6.10.0",
-    "compression": "^1.7.4"
+    "express-rate-limit": "^6.10.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",

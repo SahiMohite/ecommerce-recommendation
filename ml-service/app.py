@@ -2,25 +2,23 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 import pickle
-import logging
+import numpy as np
 from pymongo import MongoClient
 from bson import ObjectId
+import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
-# ======= Production Config =======
-PORT = int(os.environ.get("PORT", 8000))
-DEBUG = False  # Disable debug for production
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://ecommerce-recommendation-nu.vercel.app")
-
-CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
-
-# ======= Logging =======
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ======= MongoDB Connection =======
-MONGODB_URI = os.environ.get("MONGODB_URI")
+# MongoDB connection
+MONGODB_URI = os.getenv('MONGODB_URI')
 try:
     mongo_client = MongoClient(MONGODB_URI)
     db = mongo_client.ecommerce
@@ -29,17 +27,20 @@ except Exception as e:
     logger.error(f"❌ MongoDB connection error: {e}")
     db = None
 
-# ======= Model paths =======
+# Model paths
 MODEL_PATH = os.getenv('MODEL_PATH', './models')
 os.makedirs(MODEL_PATH, exist_ok=True)
 
+# Load models
 collaborative_model = None
 content_model = None
 user_item_matrix = None
 product_features = None
 
 def load_models():
+    """Load trained ML models"""
     global collaborative_model, content_model, user_item_matrix, product_features
+    
     try:
         collab_path = os.path.join(MODEL_PATH, 'collaborative_model.pkl')
         content_path = os.path.join(MODEL_PATH, 'content_model.pkl')
@@ -63,9 +64,9 @@ def load_models():
 
 load_models()
 
-# ======= Health Check =======
 @app.route('/health', methods=['GET'])
 def health_check():
+    """Health check endpoint"""
     return jsonify({
         'status': 'ok',
         'models_loaded': {
