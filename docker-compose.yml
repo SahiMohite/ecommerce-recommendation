@@ -80,7 +80,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ml-service/.env
+      - ml-service/.env.production
     depends_on:
       mongo:
         condition: service_healthy
