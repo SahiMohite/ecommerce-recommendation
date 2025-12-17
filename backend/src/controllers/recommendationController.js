@@ -2,7 +2,7 @@ const axios = require('axios');
 const Product = require('../models/Product');
 const { getCache, setCache } = require('../utils/redis');
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://ml-service:8000';
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 
 exports.getUserRecommendations = async (req, res) => {
   try {
