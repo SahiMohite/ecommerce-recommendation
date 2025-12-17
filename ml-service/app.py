@@ -28,7 +28,7 @@ except Exception as e:
     db = None
 
 # Model paths
-MODEL_PATH = os.getenv('MODEL_PATH', './models')
+MODEL_PATH = os.getenv('MODEL_PATH', '/tmp/models')
 os.makedirs(MODEL_PATH, exist_ok=True)
 
 # Load models
